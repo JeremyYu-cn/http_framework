@@ -1,4 +1,4 @@
-import http from 'http';
+import http from "http";
 
 interface HttpFrameworkMethods {
   use: (func: middleWareFunc) => void;
@@ -7,24 +7,6 @@ interface HttpFrameworkMethods {
 
 /** 监听服务方法传入参数 */
 type ListenOption = [port: number, callback: () => void];
-
-type PickRequestOptionKey = 'method' | 'url';
-type requestOption = {
-  _req: http.IncomingMessage;
-} & Pick<http.IncomingHttpHeaders, PickRequestOptionKey>;
-
-type PickResponseOptionKey = 'statusCode';
-type responseOption = {
-  _res: http.ServerResponse;
-} & Pick<http.ServerResponse, PickResponseOptionKey>;
-
-type nextTickFunc = () => void;
-
-type middleWareFunc = (
-  req: requestOption,
-  res: responseOption,
-  next: nextTickFunc
-) => void;
 
 /** Http框架类 */
 class HttpFramework implements HttpFrameworkMethods {
@@ -41,17 +23,9 @@ class HttpFramework implements HttpFrameworkMethods {
   /** 初始化 */
   private init() {
     const app = http.createServer((req, res) => {
-      const reqObj: requestOption = {
-        _req: req,
-        method: req.method,
-        url: req.url,
-      };
-      const resObj: responseOption = {
-        _res: res,
-        statusCode: res.statusCode,
-      };
+      const { reqOption, resOption } = createContext(req, res);
       // 调用中间件
-      runMiddleWare(this.middleWareArr, reqObj, resObj);
+      runMiddleWare(this.middleWareArr, reqOption, resOption);
     });
     this.serverApp = app;
   }
@@ -91,11 +65,53 @@ async function runMiddleWare(
   }
 
   if (middleWareArr[index]) {
+    req.method;
     await middleWareArr[index](req, res, next);
     if (isNext) {
-      await runMiddleWare(middleWareArr, req, res, ++index);
+      await runMiddleWare(middleWareArr, req, res, index + 1);
     }
   }
+}
+
+// 创建上下文
+function createContext(req: http.IncomingMessage, res: http.ServerResponse) {
+  const { method, url, headers } = req;
+  const { statusCode, write, end, setHeader } = res;
+  const [pathName, query] = url || "".split("?");
+  const queryObj: Record<string, any> = {};
+  if (query) {
+    const queryArr = query.split("&");
+    queryArr.forEach((val) => {
+      const [key, value] = decodeURIComponent(val).split("=");
+      if (key) queryObj[key] = value;
+    });
+  }
+  const reqOption: requestOption = {
+    _req: req,
+    method: method,
+    pathName,
+    query: queryObj,
+    fullPath: url || "",
+    headers,
+  };
+
+  const resOption: responseOption = {
+    _res: res,
+    statusCode,
+    setHeader,
+    send: (chunk) =>
+      write(chunk, (err) => {
+        if (err) {
+          console.log(err);
+        }
+      }),
+    end,
+  };
+
+  return {
+    reqOption,
+    resOption,
+  };
 }
 
 export default HttpFramework;
