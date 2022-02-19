@@ -11,51 +11,51 @@ interface AbstructRouter {
     path: PathMethod,
     businessFunc: BusinessFunc
   ) => void;
+  routes: middleWareFunc<{ route: RouteParam }>;
 }
 
 type MethodList = "GET" | "POST" | "PUT" | "OPTION" | "DELETE";
-type PathMethod = string | RegExp | string[];
+type PathMethod = string | RegExp;
 type BusinessFunc = (req: requestOption, res: responseOption) => void;
 
 type PublicRouteMethod = (path: PathMethod, businessFunc: BusinessFunc) => void;
 
 type RouterParam = {
   /** 前置路由 */
-  prefix: string;
+  prefix?: string;
 };
 
 type RouteParam = {
   method: MethodList;
   path: PathMethod;
+  pathArr: string[];
+  prefix?: string;
   businessFunc: BusinessFunc;
 };
 
 type RouterResult = {
+  data: RouterParam;
   routeList: RouteParam[];
 };
 
 class Router implements AbstructRouter {
-  public routerList: RouterResult[];
   public routeList: RouteParam[];
-  public routes: middleWareFunc;
+  public data: RouterParam;
   constructor(data: RouterParam) {
-    this.routerList = [];
     this.routeList = [];
-    this.routes = function (req, res, next) {};
-  }
-
-  private init() {
-    this.routerList.push({ routeList: this.routeList });
+    this.data = data;
   }
 
   use(data: Router) {
-    this.routerList.push({ routeList: data.routeList });
+    this.routeList = this.routeList.concat(data.routeList);
   }
 
   set(method: MethodList, path: PathMethod, businessFunc: BusinessFunc) {
     this.routeList.push({
       method,
-      path,
+      prefix: this.data.prefix,
+      path: `${path}`,
+      pathArr: typeof path === "string" ? path.split("/") : [],
       businessFunc,
     });
   }
@@ -74,6 +74,26 @@ class Router implements AbstructRouter {
   }
   option(path: PathMethod, businessFunc: BusinessFunc) {
     this.set("OPTION", path, businessFunc);
+  }
+
+  async routes(
+    req: requestOption<{ route: RouteParam }>,
+    res: responseOption,
+    next: nextTickFunc
+  ) {
+    const url = req.pathName;
+    for (let item of this.routeList) {
+      if (typeof item.path === "string") {
+        const pathArr = item.prefix
+          ? [item.prefix].concat(item.pathArr)
+          : item.pathArr;
+      } else if (item.path.test(url)) {
+        req.route = item;
+        await item.businessFunc(req, res);
+        break;
+      }
+    }
+    await next();
   }
 }
 
