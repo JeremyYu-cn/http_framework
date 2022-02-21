@@ -1,4 +1,4 @@
-import type http from "http";
+import type http from 'http';
 interface AbstructRouter {
   use: (data: Router) => void;
   get: PublicRouteMethod;
@@ -11,12 +11,16 @@ interface AbstructRouter {
     path: PathMethod,
     businessFunc: BusinessFunc
   ) => void;
-  routes: middleWareFunc<{ route: RouteParam }>;
+  routes: () => middleWareFunc<{ route: RouteParam }>;
 }
 
-type MethodList = "GET" | "POST" | "PUT" | "OPTION" | "DELETE";
+type MethodList = 'GET' | 'POST' | 'PUT' | 'OPTION' | 'DELETE';
 type PathMethod = string | RegExp;
-type BusinessFunc = (req: requestOption, res: responseOption) => void;
+type BusinessFunc = (
+  req: requestOption<{ route: RouteParam }>,
+  res: responseOption,
+  next: nextTickFunc
+) => void;
 
 type PublicRouteMethod = (path: PathMethod, businessFunc: BusinessFunc) => void;
 
@@ -31,6 +35,7 @@ type RouteParam = {
   pathArr: string[];
   prefix?: string;
   businessFunc: BusinessFunc;
+  param: Record<string, any>;
 };
 
 type RouterResult = {
@@ -41,7 +46,7 @@ type RouterResult = {
 class Router implements AbstructRouter {
   public routeList: RouteParam[];
   public data: RouterParam;
-  constructor(data: RouterParam) {
+  constructor(data: RouterParam = {}) {
     this.routeList = [];
     this.data = data;
   }
@@ -55,45 +60,61 @@ class Router implements AbstructRouter {
       method,
       prefix: this.data.prefix,
       path: `${path}`,
-      pathArr: typeof path === "string" ? path.split("/") : [],
+      pathArr: typeof path === 'string' ? path.split('/') : [],
       businessFunc,
+      param: {},
     });
   }
 
   get(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set("GET", path, businessFunc);
+    this.set('GET', path, businessFunc);
   }
   put(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set("PUT", path, businessFunc);
+    this.set('PUT', path, businessFunc);
   }
   delete(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set("DELETE", path, businessFunc);
+    this.set('DELETE', path, businessFunc);
   }
   post(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set("POST", path, businessFunc);
+    this.set('POST', path, businessFunc);
   }
   option(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set("OPTION", path, businessFunc);
+    this.set('OPTION', path, businessFunc);
   }
 
-  async routes(
-    req: requestOption<{ route: RouteParam }>,
-    res: responseOption,
-    next: nextTickFunc
-  ) {
-    const url = req.pathName;
-    for (let item of this.routeList) {
-      if (typeof item.path === "string") {
-        const pathArr = item.prefix
-          ? [item.prefix].concat(item.pathArr)
-          : item.pathArr;
-      } else if (item.path.test(url)) {
-        req.route = item;
-        await item.businessFunc(req, res);
-        break;
+  routes() {
+    return (
+      req: requestOption<{ route: RouteParam }>,
+      res: responseOption,
+      next: nextTickFunc
+    ) => {
+      const url = req.pathName;
+      const urlArr = url.split('/');
+      for (let item of this.routeList) {
+        if (typeof item.path === 'string') {
+          const param: Record<string, any> = {};
+          const pathArr = item.prefix
+            ? [item.prefix].concat(item.pathArr)
+            : item.pathArr;
+          if (pathArr.length !== urlArr.length) continue;
+          // 匹配动态路由
+          urlArr.forEach((val, index) => {
+            if (/^\:.*$/.test(pathArr[index]))
+              param[pathArr[index].substring(1, pathArr[index].length)] = val;
+          });
+          item.param = param;
+          req.route = item;
+          item.businessFunc(req, res, next);
+          return;
+        } else if (item.path.test(url)) {
+          req.route = item;
+          item.businessFunc(req, res, next);
+          return;
+        }
       }
-    }
-    await next();
+      res.send('404 not found');
+      res.end();
+    };
   }
 }
 

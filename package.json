@@ -10,6 +10,6 @@
     "typescript": "^4.5.5"
   },
   "scripts": {
-    "test": "ts-node ./src/index.ts"
+    "test": "ts-node --files ./src/index.ts"
   }
 }

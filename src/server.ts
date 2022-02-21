@@ -1,4 +1,4 @@
-import http from "http";
+import http from 'http';
 
 interface HttpFrameworkMethods {
   use: (func: middleWareFunc) => void;
@@ -31,7 +31,7 @@ class HttpFramework implements HttpFrameworkMethods {
   }
 
   /** 添加中间件 */
-  use(callback: middleWareFunc) {
+  use(callback: middleWareFunc<any>) {
     this.middleWareArr.push(callback);
   }
 
@@ -77,12 +77,12 @@ async function runMiddleWare(
 function createContext(req: http.IncomingMessage, res: http.ServerResponse) {
   const { method, url, headers } = req;
   const { statusCode, write, end, setHeader } = res;
-  const [pathName, query] = url || "".split("?");
+  const [pathName, query] = (url || '').split('?');
   const queryObj: Record<string, any> = {};
   if (query) {
-    const queryArr = query.split("&");
+    const queryArr = query.split('&');
     queryArr.forEach((val) => {
-      const [key, value] = decodeURIComponent(val).split("=");
+      const [key, value] = decodeURIComponent(val).split('=');
       if (key) queryObj[key] = value;
     });
   }
@@ -91,7 +91,7 @@ function createContext(req: http.IncomingMessage, res: http.ServerResponse) {
     method: method,
     pathName,
     query: queryObj,
-    fullPath: url || "",
+    fullPath: url || '',
     headers,
   };
 
@@ -99,13 +99,8 @@ function createContext(req: http.IncomingMessage, res: http.ServerResponse) {
     _res: res,
     statusCode,
     setHeader,
-    send: (chunk) =>
-      write(chunk, (err) => {
-        if (err) {
-          console.log(err);
-        }
-      }),
-    end,
+    send: write.bind(res),
+    end: end.bind(res),
   };
 
   return {
