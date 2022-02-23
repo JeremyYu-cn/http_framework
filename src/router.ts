@@ -1,5 +1,8 @@
-import type http from 'http';
-interface AbstructRouter {
+/**
+ * 路由中间件
+ */
+
+interface AbstractRouter {
   use: (data: Router) => void;
   get: PublicRouteMethod;
   put: PublicRouteMethod;
@@ -38,12 +41,7 @@ type RouteParam = {
   param: Record<string, any>;
 };
 
-type RouterResult = {
-  data: RouterParam;
-  routeList: RouteParam[];
-};
-
-class Router implements AbstructRouter {
+class Router implements AbstractRouter {
   public routeList: RouteParam[];
   public data: RouterParam;
   constructor(data: RouterParam = {}) {
@@ -56,11 +54,19 @@ class Router implements AbstructRouter {
   }
 
   set(method: MethodList, path: PathMethod, businessFunc: BusinessFunc) {
+    let prefixArr: string[] = [];
+    const pathArr =
+      typeof path === 'string'
+        ? path.split('/').filter((val) => val !== '')
+        : [];
+    if (this.data.prefix) {
+      prefixArr = this.data.prefix.split('/').filter((val) => val !== '');
+    }
     this.routeList.push({
       method,
       prefix: this.data.prefix,
       path: `${path}`,
-      pathArr: typeof path === 'string' ? path.split('/') : [],
+      pathArr: prefixArr.concat(pathArr),
       businessFunc,
       param: {},
     });
@@ -82,38 +88,46 @@ class Router implements AbstructRouter {
     this.set('OPTION', path, businessFunc);
   }
 
+  /** 路由匹配 */
   routes() {
-    return (
+    return async (
       req: requestOption<{ route: RouteParam }>,
       res: responseOption,
       next: nextTickFunc
     ) => {
       const url = req.pathName;
-      const urlArr = url.split('/');
+      const urlArr = url.split('/').filter((val) => val !== '');
       for (let item of this.routeList) {
         if (typeof item.path === 'string') {
           const param: Record<string, any> = {};
-          const pathArr = item.prefix
-            ? [item.prefix].concat(item.pathArr)
-            : item.pathArr;
+          const pathArr = item.pathArr;
+          let isMatch = true;
           if (pathArr.length !== urlArr.length) continue;
-          // 匹配动态路由
-          urlArr.forEach((val, index) => {
-            if (/^\:.*$/.test(pathArr[index]))
-              param[pathArr[index].substring(1, pathArr[index].length)] = val;
-          });
-          item.param = param;
-          req.route = item;
-          item.businessFunc(req, res, next);
-          return;
+          // 匹配路由
+          for (let [key, val] of Object.entries(urlArr)) {
+            let index = Number(key);
+            if (/^\:.*$/.test(pathArr[index]) || val === pathArr[index]) {
+              if (pathArr[index][0] === ':') {
+                param[pathArr[index].substring(1, pathArr[index].length)] = val;
+              }
+            } else {
+              isMatch = false;
+              break;
+            }
+          }
+          if (isMatch) {
+            item.param = param;
+            req.route = item;
+            item.businessFunc(req, res, next);
+            return;
+          }
         } else if (item.path.test(url)) {
           req.route = item;
           item.businessFunc(req, res, next);
           return;
         }
       }
-      res.send('404 not found');
-      res.end();
+      await next();
     };
   }
 }

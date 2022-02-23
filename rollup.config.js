@@ -2,6 +2,7 @@ const path = require('path');
 const rollupTypescript = require('rollup-plugin-typescript2');
 const resolve = require('rollup-plugin-node-resolve');
 const commonjs = require('rollup-plugin-commonjs');
+const { uglify } = require('rollup-plugin-uglify');
 
 /**
  * @type import('rollup').RollupOptions
@@ -20,6 +21,7 @@ const option = {
     'events',
     'stream',
     'crypto',
+    'http',
   ],
   plugins: [
     resolve(),
@@ -28,6 +30,7 @@ const option = {
       tsconfig: path.resolve(__dirname, 'tsconfig.json'),
       useTsconfigDeclarationDir: true,
     }),
+    uglify(),
   ],
 };
 

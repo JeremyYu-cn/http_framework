@@ -1,7 +1,9 @@
 import http from 'http';
 
 interface HttpFrameworkMethods {
+  /** 向实例添加中间件 */
   use: (func: middleWareFunc) => void;
+  /** 启动web服务 */
   listen: (...data: ListenOption) => void;
 }
 
@@ -31,8 +33,11 @@ class HttpFramework implements HttpFrameworkMethods {
   }
 
   /** 添加中间件 */
-  use(callback: middleWareFunc<any>) {
-    this.middleWareArr.push(callback);
+  use<T extends Record<string, any> = {}>(callback: middleWareFunc<T>) {
+    if (typeof callback !== 'function') {
+      throw new Error('middle ware must be a function');
+    }
+    this.middleWareArr.push(<middleWareFunc<{}>>callback);
   }
 
   listen(port: number, callback: () => void = () => {}) {
@@ -50,27 +55,20 @@ class HttpFramework implements HttpFrameworkMethods {
 async function runMiddleWare(
   middleWareArr: middleWareFunc[],
   req: requestOption,
-  res: responseOption,
-  current: number = 0
+  res: responseOption
 ) {
-  let index = current;
-  let isNext = false;
-  function next(): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        isNext = true;
-        resolve();
-      }, 0);
-    });
+  if (middleWareArr.length === 0) {
+    res.send('404 not found');
+    res.end();
   }
-
-  if (middleWareArr[index]) {
-    req.method;
-    await middleWareArr[index](req, res, next);
-    if (isNext) {
-      await runMiddleWare(middleWareArr, req, res, index + 1);
+  let current = 0;
+  async function next() {
+    if (middleWareArr[current + 1]) {
+      current++;
+      await middleWareArr[current](req, res, next);
     }
   }
+  await middleWareArr[0](req, res, next);
 }
 
 // 创建上下文
@@ -98,11 +96,10 @@ function createContext(req: http.IncomingMessage, res: http.ServerResponse) {
   const resOption: responseOption = {
     _res: res,
     statusCode,
-    setHeader,
+    setHeader: setHeader.bind(res),
     send: write.bind(res),
     end: end.bind(res),
   };
-
   return {
     reqOption,
     resOption,
