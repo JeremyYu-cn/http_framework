@@ -11,9 +11,7 @@
     "README.md"
   ],
   "dependencies": {
-    "@types/koa": "^2.13.4",
     "@types/node": "^17.0.18",
-    "koa": "^2.13.4",
     "rollup": "^2.67.2",
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-node-resolve": "^5.2.0",
