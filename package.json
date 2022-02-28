@@ -10,6 +10,7 @@
     "package.json",
     "README.md"
   ],
+  "keywords": ["http", "http2", "node"],
   "repository": "https://github.com/IchliebedichZhu/http_framework",
   "dependencies": {
     "@types/node": "^17.0.18",
