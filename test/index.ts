@@ -1,14 +1,13 @@
-import { Server, Router, Static } from '../src/index';
+import { Server, Router, Static, BodyParse } from '../src/index';
 import path from 'path';
 const app = new Server();
 const router = new Router({ prefix: 'hello/' });
 
-router.get('/:world', (req, res) => {
-  console.log(req.route);
+router.post('/test', (req, res) => {
   res.send('hello world');
-  res.end();
 });
 
+app.use(BodyParse());
 app.use(router.routes());
 app.use(
   Static({

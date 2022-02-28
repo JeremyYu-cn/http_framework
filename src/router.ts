@@ -20,7 +20,7 @@ interface AbstractRouter {
 type MethodList = 'GET' | 'POST' | 'PUT' | 'OPTION' | 'DELETE';
 type PathMethod = string | RegExp;
 type BusinessFunc = (
-  req: requestOption<{ route: RouteParam }>,
+  req: requestOption<{ route: RouteParam } & Record<string, any>>,
   res: responseOption,
   next: nextTickFunc
 ) => void;
@@ -49,10 +49,13 @@ class Router implements AbstractRouter {
     this.data = data;
   }
 
+  // 路由串联
   use(data: Router) {
     this.routeList = this.routeList.concat(data.routeList);
   }
-
+  /**
+   * 设置路由方法
+   */
   set(method: MethodList, path: PathMethod, businessFunc: BusinessFunc) {
     let prefixArr: string[] = [];
     const pathArr =
@@ -97,7 +100,11 @@ class Router implements AbstractRouter {
     ) => {
       const url = req.pathName;
       const urlArr = url.split('/').filter((val) => val !== '');
+
       for (let item of this.routeList) {
+        // 方法匹配
+        if (item.method !== req.method) continue;
+        // 字符串/动态路由匹配
         if (typeof item.path === 'string') {
           const param: Record<string, any> = {};
           const pathArr = item.pathArr;
@@ -121,13 +128,15 @@ class Router implements AbstractRouter {
             item.businessFunc(req, res, next);
             return;
           }
+          // 正则匹配
         } else if (item.path.test(url)) {
           req.route = item;
           item.businessFunc(req, res, next);
           return;
         }
       }
-      await next();
+      res.send('404 not found');
+      res.end();
     };
   }
 }

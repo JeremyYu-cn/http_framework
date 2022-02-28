@@ -30,17 +30,16 @@ export default function staticData({
 
     if (isExists) {
       const fileIsExists = await checkIsExists(fileName);
-      if (!fileIsExists) {
+      if (!fileIsExists && !checkIsFile(fileName)) {
         res.send('404 not found');
-        res.end();
       } else {
+        console.log(fileIsExists, fileName);
         // 协商缓存判断
         if (
-          req.headers['if-modified-since'] &&
-          req.headers['if-modified-since'] === getHash(pathName)
+          req.headers['if-none-match'] &&
+          req.headers['if-none-match'] === getHash(pathName)
         ) {
           res._res.statusCode = 304;
-          res.end();
           return;
         }
         // 强缓存设置
@@ -49,7 +48,7 @@ export default function staticData({
         }
         // 协商缓存设置
         if (cache) {
-          res.setHeader('last-modified', getHash(pathName));
+          res.setHeader('etag', getHash(pathName));
         }
         fs.createReadStream(fileName).pipe(res._res);
       }
@@ -68,6 +67,20 @@ function checkIsExists(filePath: string) {
   return new Promise((resolve) => {
     fs.access(filePath, constants.F_OK, (err) => {
       resolve(err ? false : true);
+    });
+  });
+}
+
+/** 查询是否是文件 */
+function checkIsFile(filePath: string) {
+  return new Promise((resolve) => {
+    fs.stat(filePath, (err, stat) => {
+      if (err) {
+        console.log(`${filePath} is not found`);
+        resolve(false);
+        return;
+      }
+      resolve(stat.isFile());
     });
   });
 }

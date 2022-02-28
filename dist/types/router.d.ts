@@ -14,7 +14,7 @@ declare type MethodList = 'GET' | 'POST' | 'PUT' | 'OPTION' | 'DELETE';
 declare type PathMethod = string | RegExp;
 declare type BusinessFunc = (req: requestOption<{
     route: RouteParam;
-}>, res: responseOption, next: nextTickFunc) => void;
+} & Record<string, any>>, res: responseOption, next: nextTickFunc) => void;
 declare type PublicRouteMethod = (path: PathMethod, businessFunc: BusinessFunc) => void;
 declare type RouterParam = {
     prefix?: string;

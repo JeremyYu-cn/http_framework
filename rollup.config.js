@@ -27,7 +27,7 @@ const option = {
     resolve(),
     commonjs(),
     rollupTypescript({
-      tsconfig: path.resolve(__dirname, 'tsconfig.json'),
+      tsconfig: path.resolve(__dirname, 'tsconfig.prod.json'),
       useTsconfigDeclarationDir: true,
     }),
     uglify(),
