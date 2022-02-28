@@ -87,6 +87,7 @@ async function runMiddleWare(
   if (middleWareArr.length === 0) {
     res.send('404 not found');
     res.end();
+    return;
   }
   let current = 0;
   async function next() {
