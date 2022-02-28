@@ -1,6 +1,6 @@
 {
   "name": "httpfrk",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "dist/index.js",
   "types": "dist/types/index.d.ts",
   "license": "MIT",
@@ -10,6 +10,7 @@
     "package.json",
     "README.md"
   ],
+  "repository": "https://github.com/IchliebedichZhu/http_framework",
   "dependencies": {
     "@types/node": "^17.0.18",
     "rollup": "^2.67.2",
