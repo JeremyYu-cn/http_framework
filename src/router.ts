@@ -17,7 +17,7 @@ interface AbstractRouter {
   routes: () => middleWareFunc<{ route: RouteParam }>;
 }
 
-type MethodList = 'GET' | 'POST' | 'PUT' | 'OPTION' | 'DELETE';
+type MethodList = "GET" | "POST" | "PUT" | "OPTION" | "DELETE";
 type PathMethod = string | RegExp;
 type BusinessFunc = (
   req: requestOption<{ route: RouteParam } & Record<string, any>>,
@@ -59,11 +59,11 @@ class Router implements AbstractRouter {
   set(method: MethodList, path: PathMethod, businessFunc: BusinessFunc) {
     let prefixArr: string[] = [];
     const pathArr =
-      typeof path === 'string'
-        ? path.split('/').filter((val) => val !== '')
+      typeof path === "string"
+        ? path.split("/").filter((val) => val !== "")
         : [];
     if (this.data.prefix) {
-      prefixArr = this.data.prefix.split('/').filter((val) => val !== '');
+      prefixArr = this.data.prefix.split("/").filter((val) => val !== "");
     }
     this.routeList.push({
       method,
@@ -76,19 +76,19 @@ class Router implements AbstractRouter {
   }
 
   get(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set('GET', path, businessFunc);
+    this.set("GET", path, businessFunc);
   }
   put(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set('PUT', path, businessFunc);
+    this.set("PUT", path, businessFunc);
   }
   delete(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set('DELETE', path, businessFunc);
+    this.set("DELETE", path, businessFunc);
   }
   post(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set('POST', path, businessFunc);
+    this.set("POST", path, businessFunc);
   }
   option(path: PathMethod, businessFunc: BusinessFunc) {
-    this.set('OPTION', path, businessFunc);
+    this.set("OPTION", path, businessFunc);
   }
 
   /** 路由匹配 */
@@ -99,13 +99,13 @@ class Router implements AbstractRouter {
       next: nextTickFunc
     ) => {
       const url = req.pathName;
-      const urlArr = url.split('/').filter((val) => val !== '');
+      const urlArr = url.split("/").filter((val) => val !== "");
 
       for (let item of this.routeList) {
         // 方法匹配
         if (item.method !== req.method) continue;
         // 字符串/动态路由匹配
-        if (typeof item.path === 'string') {
+        if (typeof item.path === "string") {
           const param: Record<string, any> = {};
           const pathArr = item.pathArr;
           let isMatch = true;
@@ -114,7 +114,7 @@ class Router implements AbstractRouter {
           for (let [key, val] of Object.entries(urlArr)) {
             let index = Number(key);
             if (/^\:.*$/.test(pathArr[index]) || val === pathArr[index]) {
-              if (pathArr[index][0] === ':') {
+              if (pathArr[index][0] === ":") {
                 param[pathArr[index].substring(1, pathArr[index].length)] = val;
               }
             } else {
@@ -135,7 +135,7 @@ class Router implements AbstractRouter {
           return;
         }
       }
-      res.send('404 not found');
+      res.send("404 not found");
       res.end();
     };
   }
